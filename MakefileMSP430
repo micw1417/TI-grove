@@ -1,0 +1,74 @@
+# Directories
+MSPGCC_ROOT_DIR    = /c/ti/msp430-gcc
+MSPGCC_BIN_DIR     = $(MSPGCC_ROOT_DIR)/bin
+MSPGCC_INCLUDE_DIR = $(MSPGCC_ROOT_DIR)/include
+BUILD_DIR          = build
+OBJ_DIR            = $(BUILD_DIR)/obj
+BIN_DIR            = $(BUILD_DIR)/bin
+TI_CCS_DIR         = /c/ti/ccs1281/ccs
+DEBUG_BIN_DIR      = $(TI_CCS_DIR)/ccs_base/DebugServer/bin
+DEBUG_DRIVERS_DIR  = $(TI_CCS_DIR)/ccs_base/DebugServer/drivers
+
+# Toolchain
+CC       = $(MSPGCC_BIN_DIR)/msp430-elf-gcc
+GDBPROXY = $(DEBUG_BIN_DIR)/msp430-gdbproxy.exe
+GDB      = $(MSPGCC_BIN_DIR)/msp430-elf-gdb.exe
+RM       = rm
+
+# Files
+TARGET       = $(BIN_DIR)/blink.elf
+SOURCES      = main.c led.c grove/grove_buzzer.c
+OBJECT_NAMES = $(SOURCES:.c=.o)
+OBJECTS      = $(patsubst %,$(OBJ_DIR)/%,$(OBJECT_NAMES))
+
+# Flags
+MCU     = msp430g2553
+WFLAGS  = -Wall -Wextra -Werror -Wshadow
+CFLAGS  = -mmcu=$(MCU) $(WFLAGS) -I$(MSPGCC_INCLUDE_DIR) -Og -g
+LDFLAGS = -mmcu=$(MCU) -L$(MSPGCC_INCLUDE_DIR)
+
+# ----------------------------
+# Build rules
+# ----------------------------
+$(OBJ_DIR)/%.o: src/%.c
+	@mkdir -p $(dir $@)
+			$(CC) $(CFLAGS) -c -o $@ $<
+
+$(TARGET): $(OBJECTS)
+	@mkdir -p $(dir $@)
+	$(CC) $(LDFLAGS) $^ -o $@
+
+# ----------------------------
+# Phonies
+# ----------------------------
+.PHONY: all clean flash debug
+
+all: $(TARGET)
+
+clean:
+	$(RM) -rf $(BUILD_DIR)
+
+flash: $(BIN_DIR)/blink.elf
+	@taskkill //F //IM msp430-gdbproxy.exe 2>/dev/null || true
+	@echo "Starting gdbproxy..."
+	@PATH="$(DEBUG_DRIVERS_DIR):$$PATH" $(GDBPROXY) --allow-remote &
+	@sleep 2
+	@echo "Flashing..."
+	$(GDB) --batch \
+	    -ex "target remote localhost:2000" \
+	    -ex "monitor reset halt" \
+	    -ex "mon erase" \
+	    -ex "load" \
+	    -ex "monitor reset run" \
+	    -ex "quit" \
+	    $(BIN_DIR)/blink.elf
+	@echo "Flash complete!"
+
+debug: $(TARGET)
+	@taskkill //F //IM msp430-gdbproxy.exe 2>/dev/null || true
+	@PATH="$(DEBUG_DRIVERS_DIR):$$PATH" $(GDBPROXY) --allow-remote &
+	@sleep 2
+	$(GDB) \
+	    -ex "target remote localhost:2000" \
+	    -ex "monitor reset halt" \
+	    $(TARGET)

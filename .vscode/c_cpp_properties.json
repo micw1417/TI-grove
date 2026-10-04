@@ -1,0 +1,71 @@
+{
+    "configurations": [
+        {
+            "name": "TM4C123GH6PM",
+            "includePath": [
+                "${workspaceFolder}/tm4c123g",
+                "${workspaceFolder}/tm4c123g/grove",
+                "C:\\ti\\TivaWare_C_Series-2.2.0.295",
+                "C:\\ti\\TivaWare_C_Series-2.2.0.295\\inc",
+                "C:\\ti\\TivaWare_C_Series-2.2.0.295\\driverlib",
+                "C:\\ti\\arm-gnu-toolchain-15.2-arm-none-eabi\\include",
+                "C:\\ti\\arm-gnu-toolchain-15.2-arm-none-eabi\\lib\\gcc\\arm-none-eabi\\15.2.1\\include",
+                "C:\\ti\\arm-gnu-toolchain-15.2-arm-none-eabi\\lib\\gcc\\arm-none-eabi\\15.2.1\\include-fixed"
+            ],
+            "defines": [
+                "PART_TM4C123GH6PM",
+                "TARGET_IS_TM4C123_RB1",
+                "ccs=ccs",
+                "__ARM_ARCH",
+                "__GNUC__",
+                "__STDC_HOSTED__=0" 
+            ],
+            "compilerPath": "C:/ti/arm-gnu-toolchain-15.2-arm-none-eabi/bin/arm-none-eabi-gcc.exe",
+            "cStandard": "c11",
+            "intelliSenseMode": "gcc-arm",
+             "compilerArgs": [
+                "-ffreestanding",         // ✅ tells IntelliSense to use freestanding mode
+                "-mcpu=cortex-m4",
+                "-mfpu=fpv4-sp-d16",
+                "-mfloat-abi=hard"
+            ]
+        },
+        {
+            "name": "MSP432P401R",  
+            "includePath": [
+                "${workspaceFolder}/msp432",
+                "${workspaceFolder}/msp432/grove",
+                "C:\\ti\\simplelink_msp432p4_sdk_3_40_01_02\\source",
+                "C:\\ti\\simplelink_msp432p4_sdk_3_40_01_02\\source\\ti\\devices\\msp432p4xx\\driverlib",
+                "C:\\ti\\simplelink_msp432p4_sdk_3_40_01_02\\source\\third_party\\CMSIS\\Include",
+                "C:\\ti\\arm-gnu-toolchain-15.2-arm-none-eabi\\arm-none-eabi\\include",
+                "C:\\ti\\arm-gnu-toolchain-15.2-arm-none-eabi\\arm-none-eabi\\include\\sys",
+                "C:\\ti\\arm-gnu-toolchain-15.2-arm-none-eabi\\lib\\gcc\\arm-none-eabi\\15.2.1\\include",
+                "C:\\ti\\arm-gnu-toolchain-15.2-arm-none-eabi\\lib\\gcc\\arm-none-eabi\\15.2.1\\include-fixed"
+            ],
+            "defines": [
+                "__MSP432P401R__",
+                "__GNUC__"
+            ],
+            "compilerPath": "C:\\ti\\arm-gnu-toolchain-15.2-arm-none-eabi\\bin\\arm-none-eabi-gcc.exe",
+            "cStandard": "c11",
+            "intelliSenseMode": "gcc-arm"
+        },
+        {
+            "name": "__MSP430G2553__",
+            "includePath": [
+                "${workspaceFolder}/msp430",
+                "C:\\ti\\msp430-gcc\\include",
+                "C:\\ti\\msp430-gcc\\msp430-elf\\include"
+            ],
+            "defines": [
+                "__MSP430G2553__",
+                "__GNUC__"
+            ],
+            "compilerPath": "C:\\ti\\msp430-gcc\\bin\\msp430-elf-gcc.exe",
+            "cStandard": "c11",
+            "intelliSenseMode": "gcc-x64"
+        }
+    ],
+    "version": 4
+}

@@ -1,0 +1,211 @@
+# ==============================================================
+# Makefile for TM4C123G — Adapted from CCS .cproject
+# Toolchain: arm-none-eabi-gcc (GCC, NOT TI CGT)
+# Target:    EK-TM4C123GXL (Tiva C LaunchPad)
+# Flash/DBG: OpenOCD + arm-none-eabi-gdb
+# ==============================================================
+
+# ==============================================================
+# Directories
+# ==============================================================
+ARM_TOOLCHAIN_DIR  = /c/ti/gcc_arm_none_eabi_9_2_1
+ARM_BIN_DIR        = $(ARM_TOOLCHAIN_DIR)/bin
+TIVAWARE_DIR       = /c/ti/TivaWare_C_Series-2.2.0.295
+OPENOCD_DIR        = /c/ti/openocd
+OPENOCD_BIN_DIR    = $(OPENOCD_DIR)/bin
+OPENOCD_SCRIPTS    = $(OPENOCD_DIR)/share/openocd/scripts
+BUILD_DIR          = build
+OBJ_DIR            = $(BUILD_DIR)/obj
+BIN_DIR            = $(BUILD_DIR)/bin
+
+# ==============================================================
+# Toolchain Binaries
+# ==============================================================
+CC      = $(ARM_BIN_DIR)/arm-none-eabi-gcc.exe
+GDB     = $(ARM_BIN_DIR)/arm-none-eabi-gdb.exe
+OBJCOPY = $(ARM_BIN_DIR)/arm-none-eabi-objcopy.exe
+SIZE    = $(ARM_BIN_DIR)/arm-none-eabi-size.exe
+RM      = rm
+
+# ==============================================================
+# Target & Sources
+# ==============================================================
+TARGET = $(BIN_DIR)/grove2
+
+# ⚠️  STARTUP FILE WARNING:
+#     Your tree shows startup_msp432p401r_gcc.c — this is for MSP432, NOT TM4C!
+#     You need startup_gcc.c for TM4C123G.
+#     Get it from: TivaWare_C_Series-2.2.0.295/examples/boards/ek-tm4c123gxl/blinky/startup_gcc.c
+#     Copy it into src/ and update the line below.
+#
+# ⚠️  GROVE SOURCES:
+#     Add your src/grove/*.c files to OBJECTS below.
+#     Run: find src/grove -name "*.c" to list them.
+
+OBJECTS = \
+    $(OBJ_DIR)/src/main.o           \
+    $(OBJ_DIR)/src/led.o            \
+    $(OBJ_DIR)/src/grove/grove_buzzer.o \
+    $(OBJ_DIR)/src/startup_gcc.o
+#   ^^^ Replace startup_gcc.o with correct file once confirmed
+
+# ==============================================================
+# Compiler Flags — Translated from CCS .cproject
+# ==============================================================
+
+# --- CPU / Architecture ---
+# CCS: --silicon_version=7M4 --code_state=16 --float_support=FPv4SPD16 --abi=eabi
+CPU_FLAGS  = -mthumb
+CPU_FLAGS += -mcpu=cortex-m4
+CPU_FLAGS += -mfpu=fpv4-sp-d16
+CPU_FLAGS += -mfloat-abi=hard
+# --little_endian is already the default in arm-none-eabi, no flag needed
+
+# --- Preprocessor Defines ---
+# CCS: --define=PART_TM4C123GH6PM --define=TARGET_IS_TM4C123_RB1 --define=ccs="ccs"
+# Note: ccs="ccs" is used by TivaWare headers to select the right register definitions
+# Keep it even though you're using GCC — it guards some TivaWare internal ifdefs
+DEFINES    = -DPART_TM4C123GH6PM
+DEFINES   += -DTARGET_IS_TM4C123_RB1
+DEFINES   += -Dccs=ccs
+
+# --- Include Paths ---
+# CCS: --include_path=${COM_TI_TIVAWARE_INCLUDE_PATH} + ${PROJECT_ROOT} + ${SW_ROOT}
+INCLUDES   = -I$(TIVAWARE_DIR)
+INCLUDES  += -I.
+# Add more -I flags here if your grove headers live in a subdirectory:
+# INCLUDES  += -Isrc/grove
+
+# --- Optimization ---
+# CCS Debug config uses --opt_level=2 → GCC -O2
+# Your original VSCode Makefile used -Og (optimize for debugging).
+# -Og is actually better for a debug build — it keeps variables inspectable in GDB.
+# Using -O2 here to match CCS exactly, but you can swap to -Og if GDB feels painful.
+OPT_FLAGS  = -O2
+
+# --- Debug Info ---
+# CCS: --debugging_model=DWARF → GCC -g (generate DWARF debug symbols)
+DBG_FLAGS  = -g
+
+# --- Section splitting (dead-code elimination support) ---
+# CCS: --gen_func_subsections=on
+# This pairs with --gc-sections in LDFLAGS to strip unused functions at link time
+SECTION_FLAGS = -ffunction-sections -fdata-sections
+
+# --- Warning flags ---
+# CCS: --diag_warning=225 (missing implicit declarations → warning, not error)
+# In GCC, -Wmissing-declarations is the closest equivalent.
+# Your original Makefile had -Werror which would FAIL on warning 225 equivalent.
+# Keeping -Wall -Wextra but removing -Werror to match CCS's more lenient stance.
+WFLAGS     = -Wall -Wextra
+WFLAGS    += -Wno-missing-declarations
+# Tip: Re-add -Werror once your code is clean — it's good practice
+
+# --- Assemble all CFLAGS ---
+CFLAGS     = $(CPU_FLAGS)
+CFLAGS    += $(DEFINES)
+CFLAGS    += $(INCLUDES)
+CFLAGS    += $(OPT_FLAGS)
+CFLAGS    += $(DBG_FLAGS)
+CFLAGS    += $(SECTION_FLAGS)
+CFLAGS    += $(WFLAGS)
+
+# ==============================================================
+# Linker Flags — Translated from CCS .cproject
+# ==============================================================
+
+# CCS uses a .cmd linker script (TI-specific memory map format).
+# GCC requires a .ld script. TivaWare ships one for GCC:
+#   $(TIVAWARE_DIR)/tools/gcc/standalone.ld
+# This defines FLASH (256K @ 0x00000000) and SRAM (32K @ 0x20000000)
+# for the TM4C123GH6PM exactly as the .cmd file does.
+
+LDFLAGS    = $(CPU_FLAGS)
+LDFLAGS   += -T$(TIVAWARE_DIR)/tools/gcc/standalone.ld
+
+# Entry point — matches CCS's reset vector name
+LDFLAGS   += --entry ResetISR
+
+# Dead-code stripping — pairs with -ffunction-sections above
+LDFLAGS   += -Wl,--gc-sections
+
+# TivaWare GCC driverlib (GCC-compiled version, not CCS driverlib.lib)
+# CCS used: ${SW_ROOT}/driverlib/ccs/Debug/driverlib.lib
+# GCC uses: $(TIVAWARE_DIR)/driverlib/gcc/libdriver.a
+LDFLAGS   += -L$(TIVAWARE_DIR)/driverlib/gcc -ldriver
+
+# Stack and heap sizes from CCS linker settings
+# CCS: --stack_size=512 --heap_size=0
+LDFLAGS   += -Wl,--defsym,__STACK_SIZE=512
+LDFLAGS   += -Wl,--defsym,__HEAP_SIZE=0
+
+# Generate a memory usage report after linking (very useful for embedded!)
+LDFLAGS   += -Wl,--print-memory-usage
+
+# Generate a .map file (equivalent to CCS's --map_file=grove2.map)
+# Shows exactly where every function/variable ended up in flash/RAM
+LDFLAGS   += -Wl,-Map=$(BIN_DIR)/grove2.map
+
+# ==============================================================
+# Build Rules
+# ==============================================================
+
+# Pattern rule: compile any .c under src/ into a .o under build/obj/src/
+# $@ = target (the .o file)
+# $< = first prerequisite (the .c file)
+# @mkdir -p creates the output directory if it doesn't exist yet
+$(OBJ_DIR)/src/%.o: src/%.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c -o $@ $
+
+# Link all .o files into a .elf
+# $^ = all prerequisites (all the .o files)
+$(TARGET).elf: $(OBJECTS)
+	@mkdir -p $(dir $@)
+	$(CC) $(LDFLAGS) $^ -o $@
+	@$(SIZE) $@
+
+# Convert .elf → raw binary for flashing
+# -O binary strips all ELF metadata, leaving only the raw machine code
+$(TARGET).bin: $(TARGET).elf
+	$(OBJCOPY) -O binary $< $@
+
+# ==============================================================
+# Phony Targets
+# ==============================================================
+.PHONY: all clean flash debug size
+
+all: $(TARGET).elf $(TARGET).bin
+
+# Shows flash and RAM usage — good habit on microcontrollers with tight memory
+size: $(TARGET).elf
+	$(SIZE) --format=berkeley $
+
+clean:
+	$(RM) -rf $(BUILD_DIR)
+
+# Flash via OpenOCD + TI ICDI (on-board debugger of the LaunchPad)
+flash: $(TARGET).elf
+	@taskkill //F //IM openocd.exe 2>/dev/null || true
+	@echo "Flashing $(TARGET).elf ..."
+	$(OPENOCD_BIN_DIR)/openocd.exe \
+	    -s "$(OPENOCD_SCRIPTS)" \
+	    -f interface/ti-icdi.cfg \
+	    -f target/ek-tm4c123gxl.cfg \
+	    -c "program $(TARGET).elf verify reset exit"
+	@echo "Flash complete!"
+
+# Start OpenOCD GDB server then attach GDB
+# OpenOCD runs in background (&), GDB connects to it on port 3333
+debug: $(TARGET).elf
+	@taskkill //F //IM openocd.exe 2>/dev/null || true
+	@echo "Starting OpenOCD GDB server on :3333 ..."
+	@$(OPENOCD_BIN_DIR)/openocd.exe \
+	    -s "$(OPENOCD_SCRIPTS)" \
+	    -f interface/ti-icdi.cfg \
+	    -f target/ek-tm4c123gxl.cfg &
+	@sleep 2
+	$(GDB) \
+	    -ex "target remote localhost:3333" \
+	    -ex "monitor reset halt" \
+	    $(TARGET).elf

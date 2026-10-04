@@ -1,0 +1,18 @@
+{
+    "files.eol": "\n",
+    "editor.insertSpaces": false,
+    "files.associations": {
+        "*.h": "c",
+        "*.c": "c",
+        "Makefile": "makefile",
+        "MakefileTM4C123G": "makefile",
+        "MakefileMSP432": "makefile",
+        "MakefileMSP430": "makefile"
+    },
+    "[makefile]": {
+        "editor.insertSpaces": false,
+        "editor.formatOnSave": false
+    },
+    "C_Cpp.default.configurationProvider": "",
+    "C_Cpp.default.compilerPath": "C:/ti/arm-gnu-toolchain-15.2-arm-none-eabi/bin/arm-none-eabi-gcc.exe"
+}
